@@ -198,6 +198,8 @@ Game.prototype.update = function(){
 	//Grow if you eat an apple
 	if(isEatApple(this)){
 		this.snake.grow();
+		this.apple.x = Math.round(Math.random() * this.width / this.apple.width) * this.apple.width;
+		this.apple.y = Math.round(Math.random() * this.width / this.apple.height) * this.apple.height;
 	}
 
 	var self = this;
