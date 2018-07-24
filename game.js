@@ -154,7 +154,9 @@ Snake.prototype.yturn = function(val){
 Snake.prototype.grow = function(){
 	this.growCount = 1;
 	this.eaten += 1;
-	this.score += 100;
+
+	//bonus for eating
+	this.score += 10;
 }
 
 Snake.prototype.update = function(){
@@ -174,9 +176,6 @@ Snake.prototype.update = function(){
 	this.head.x += this.head.width * this.xdirect ;
 	this.head.y += this.head.height * this.ydirect ;
 
-	//Update score
-	this.score += 1;
-
 	//Grow if have eaten Apple
 	if (this.growCount == this.body.length + 1) {
 		//grow
@@ -191,6 +190,48 @@ Snake.prototype.update = function(){
 
 	//Growth counter
 	this.growCount += 1;
+}
+
+Snake.prototype.updateScore = function(apple){
+	/*
+	//Simple scoring
+	this.score += 1;
+	*/
+
+	//Complex scoring : for pushing exploration
+	//+1 if goes toward food
+	//-0.5 if not
+	if (this.head.x < apple.x) {
+		//food is to the right
+		if (this.xdirect > 0) {
+			this.score += 1;
+		} else {
+			this.score -= 0.5;
+		}
+	} else {
+		//food is to the left
+		if (this.xdirect < 0) {
+			this.score += 1;
+		} else {
+			this.score -= 0.5;
+		}
+	}
+
+	if (this.head.y < apple.y) {
+		//apple is underneath
+		if (this.ydirect > 0) {
+			this.score += 1;
+		} else {
+			this.score -= 0.5;
+		}
+	} else {
+		//food is to the top
+		if (this.ydirect < 0) {
+			this.score += 1;
+		} else {
+			this.score -= 0.5;
+		}
+	}
 }
 
 Snake.prototype.isDead = function(height, width){
@@ -338,6 +379,7 @@ Game.prototype.update = function(){
 			}
 
 			this.snakes[i].update();
+			this.snakes[i].updateScore(this.apple);
 
 			if (i == 0){
 				console.log(inputs);
