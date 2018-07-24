@@ -130,6 +130,7 @@ Snake.prototype.yturn = function(val){
 Snake.prototype.grow = function(){
 	this.growCount = 1;
 	this.eaten += 1;
+	this.score += 100;
 }
 
 Snake.prototype.update = function(){
@@ -223,7 +224,7 @@ Game.prototype.update = function(){
 	for(var i in this.snakes){
 		if(this.snakes[i].alive){
 
-			//The inputs are safe area around me
+			//The inputs are safe area around me + food location (up/down/left/right)
 
 			//Hit left key safe ?
 			//Fake an update on Head
@@ -273,15 +274,26 @@ Game.prototype.update = function(){
 			//Reset Head
 			this.snakes[i].head.y -= this.snakes[i].head.height * (-1) ;
 
-			if (i == 0){
-				console.log(leftSafe,rightSafe,upSafe,downSafe);
+			if (this.snakes[i].head.x < this.apple.x) {
+				//food is to the right
+				foodRight = 1;
+			} else {
+				foodRight = 0;
+			}
+			if (this.snakes[i].head.y < this.apple.y) {
+				//food is to the top
+				foodTop = 1;
+			} else {
+				foodTop = 0;
 			}
 
 			var inputs = [
 				leftSafe,
 				rightSafe,
 				upSafe,
-				downSafe
+				downSafe,
+				foodRight,
+				foodTop
 			];
 
 			//NN tells which key to press
@@ -301,6 +313,10 @@ Game.prototype.update = function(){
 			}
 
 			this.snakes[i].update();
+
+			if (i == 0){
+				console.log(leftSafe,rightSafe,upSafe,downSafe);
+			}
 
 			//Grow if you eat an apple
 			// UPDATE ALL APPLES
@@ -380,8 +396,8 @@ window.onload = function(){
 	console.log("loaded");
 	var start = function(){
 		Neuvol = new Neuroevolution({
-			population:10,
-			network:[4, [2], 4],
+			population:50,
+			network:[6, [2], 4],
 		});
 		game = new Game();
 		game.start();
