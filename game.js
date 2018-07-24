@@ -21,12 +21,12 @@ var isCollision = function(snake){
 	}
 }
 
-var isEatApple = function(game){
+var isEatApple = function(snake, apple){
 
 	//test head collision with apple
-	if (game.snake.head.x < game.apple.x + game.apple.width  && game.snake.head.x + game.snake.head.width  > game.apple.x &&
-			game.snake.head.y < game.apple.y +game.apple.height && game.snake.head.y + game.snake.head.height > game.apple.y) {
-		console.log("eaten!", game.snake.body.length);
+	if (snake.head.x < apple.x + apple.width  && snake.head.x + snake.head.width  > apple.x &&
+			snake.head.y < apple.y +apple.height && snake.head.y + snake.head.height > apple.y) {
+		console.log("eaten!", snake.body.length);
 		return true;
 	}
 
@@ -175,7 +175,7 @@ Snake.prototype.isDead = function(height, width){
 }
 
 var Game = function(){
-	this.snake = new Snake();
+	this.snakes = [];
 	this.canvas = document.querySelector("#playground");
 	this.ctx = this.canvas.getContext("2d");
 	this.width = this.canvas.width;
@@ -183,29 +183,148 @@ var Game = function(){
 	this.apple = new Apple();
 	this.apple.x = Math.round(Math.random() * this.width / this.apple.width) * this.apple.width;
 	this.apple.y = Math.round(Math.random() * this.width / this.apple.height) * this.apple.height;
+	this.spawnInterval = 90;
+	this.interval = 0;
+	this.gen = [];
+	this.alives = 0;
+	this.generation = 0;
+	this.maxScore = 0;
 }
 
+Game.prototype.start = function(){
+	this.interval = 0;
+	this.snakes = [];
+	this.currentMaxScore = 0;
+	this.gen = Neuvol.nextGeneration();
+	for(var i in this.gen){
+		var s = new Snake();
+		this.snakes.push(s);
+	}
+	console.log("started");
+
+	this.generation++;
+	this.alives = this.snakes.length;
+}
+
+Game.prototype.isItEnd = function(){
+	for(var i in this.snakes){
+		if(this.snakes[i].alive){
+			return false;
+		}
+	}
+	return true;
+}
 
 Game.prototype.update = function(){
-	if(this.snake.isDead(this.height, this.width)){
-			this.snake.alive = false;
-			FPS = 0;
-			console.log("dead");
-	} else {
-		this.snake.update();
-	}
 
-	//Grow if you eat an apple
-	if(isEatApple(this)){
-		this.snake.grow();
-		this.apple.x = Math.round(Math.random() * this.width / this.apple.width) * this.apple.width;
-		this.apple.y = Math.round(Math.random() * this.width / this.apple.height) * this.apple.height;
+
+	for(var i in this.snakes){
+		if(this.snakes[i].alive){
+
+			//The inputs are safe area around me
+
+			//Hit left key safe ?
+			//Fake an update on Head
+			this.snakes[i].head.x += this.snakes[i].head.width * (-1) ;
+			//Assess safety
+			if(isCollision(this.snakes[i])){
+				leftSafe = 0;
+			} else {
+				leftSafe = 1;
+			}
+			//Reset Head
+			this.snakes[i].head.x -= this.snakes[i].head.width * (-1) ;
+
+			//Hit right key safe ?
+			//Fake an update on Head
+			this.snakes[i].head.x += this.snakes[i].head.width * (1) ;
+			//Assess safety
+			if(isCollision(this.snakes[i])){
+				rightSafe = 0;
+			} else {
+				rightSafe = 1;
+			}
+			//Reset Head
+			this.snakes[i].head.x -= this.snakes[i].head.width * (1) ;
+
+			//Hit down key safe ?
+			//Fake an update on Head
+			this.snakes[i].head.y += this.snakes[i].head.height * (1) ;
+			//Assess safety
+			if(isCollision(this.snakes[i])){
+				downSafe = 0;
+			} else {
+				downSafe = 1;
+			}
+			//Reset Head
+			this.snakes[i].head.y -= this.snakes[i].head.height * (1) ;
+
+			//Hit up key safe ?
+			//Fake an update on Head
+			this.snakes[i].head.y += this.snakes[i].head.height * (-1) ;
+			//Assess safety
+			if(isCollision(this.snakes[i])){
+				upSafe = 0;
+			} else {
+				upSafe = 1;
+			}
+			//Reset Head
+			this.snakes[i].head.y -= this.snakes[i].head.height * (-1) ;
+
+			var inputs = [
+				leftSafe,
+				rightSafe,
+				upSafe,
+				downSafe
+			];
+
+			//NN tells which key to press
+			// res returns 4 float numbers : the max number gives the button to press
+			var res = this.gen[i].compute(inputs);
+
+			//find the maximum in res
+			var indexOfMaxValue = res.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
+			if (indexOfMaxValue == 0){
+				game.snakes[i].yturn(1);
+			} else if (indexOfMaxValue == 1) {
+				game.snakes[i].yturn(-1);
+			} else if (indexOfMaxValue == 2) {
+				game.snakes[i].xturn(1);
+			} else {
+				game.snakes[i].xturn(-1);
+			}
+
+			this.snakes[i].update();
+
+			//Grow if you eat an apple
+			// UPDATE ALL APPLES
+			if(isEatApple(this.snakes[i], this.apple)){
+				this.snakes[i].grow();
+				//this.apple.x = Math.round(Math.random() * this.width / this.apple.width) * this.apple.width;
+				//this.apple.y = Math.round(Math.random() * this.width / this.apple.height) * this.apple.height;
+			}
+
+			this.currentMaxScore = (this.snakes[i].score > this.currentMaxScore) ? this.snakes[i].score : this.currentMaxScore;
+
+			if(this.snakes[i].isDead(this.height, this.width)){
+				this.snakes[i].alive = false;
+				this.alives--;
+				console.log(i, this.snakes[i].score);
+				Neuvol.networkScore(this.gen[i], this.snakes[i].score);
+				this.maxScore = (this.snakes[i].score > this.maxScore) ? this.snakes[i].score : this.maxScore;
+				if(this.isItEnd()){
+					this.start();
+				}
+			}
+		}
 	}
 
 	var self = this;
 
 	if(FPS == 0){
-
+		setZeroTimeout(function(){
+			self.update();
+		});
 	}else{
 		setTimeout(function(){
 			self.update();
@@ -221,11 +340,15 @@ Game.prototype.display = function(){
 	//Playground
 	this.ctx.fillRect(0, 0, this.width, this.height);
 
-	//Snake
-	this.ctx.fillStyle = "#ff2000";
-	this.ctx.fillRect(this.snake.head.x, this.snake.head.y, this.snake.head.width, this.snake.head.height);
-	for(var i in this.snake.body){
-		this.ctx.fillRect(this.snake.body[i].x, this.snake.body[i].y, this.snake.body[i].width, this.snake.body[i].height);
+	//snakes
+	for(var i in this.snakes){
+		if(this.snakes[i].alive){
+			this.ctx.fillStyle = "#ff2000";
+			this.ctx.fillRect(this.snakes[i].head.x, this.snakes[i].head.y, this.snakes[i].head.width, this.snakes[i].head.height);
+			for(var j in this.snakes[i].body){
+				this.ctx.fillRect(this.snakes[i].body[j].x, this.snakes[i].body[j].y, this.snakes[i].body[j].width, this.snakes[i].body[j].height);
+			}
+		}
 	}
 
 	//Apple
@@ -234,8 +357,10 @@ Game.prototype.display = function(){
 
 	this.ctx.fillStyle = "white";
 	this.ctx.font="20px Oswald, sans-serif";
-	this.ctx.fillText("Score : "+ this.snake.score, 10, 25);
-	this.ctx.fillText("Eaten : "+ (this.snake.eaten), 10, 50);
+	this.ctx.fillText("Score : "+ this.currentMaxScore, 10, 25);
+	this.ctx.fillText("Max Score : "+this.maxScore, 10, 50);
+	this.ctx.fillText("Generation : "+this.generation, 10, 75);
+	this.ctx.fillText("Alive : "+this.alives+" / "+Neuvol.options.population, 10, 100);
 
 
 	var self = this;
@@ -244,29 +369,18 @@ Game.prototype.display = function(){
 	});
 }
 
+
 window.onload = function(){
-
+	console.log("loaded");
 	var start = function(){
-		console.log("loaded");
+		Neuvol = new Neuroevolution({
+			population:10,
+			network:[4, [2], 4],
+		});
 		game = new Game();
-
-		// Controler
-		window.onkeydown = function(e) {
-		   var key = e.keyCode ? e.keyCode : e.which;
-			 //console.log(key);
-			 if (key == 40) { //down
-				 game.snake.yturn(1);
-			 } else if (key == 38) {
-				 game.snake.yturn(-1);
-			 } else if (key == 39) {
-				 game.snake.xturn(1);
-			 } else if (key == 37) {
-				 game.snake.xturn(-1);
-			 }
-		 }
-
-	 game.update();
-	 game.display();
+		game.start();
+		game.update();
+		game.display();
 
 	}
 
