@@ -27,7 +27,7 @@ var game;
 var FPS = 20;
 var maxScore=0;
 var size = 10;
-var initBody = 20;
+var initBody = 5;
 
 var images = {};
 
@@ -249,6 +249,7 @@ Game.prototype.update = function(){
 		if(this.snakes[i].alive){
 
 			//The inputs are safe area around me + food location (up/down/left/right)
+			//It is labelled as unsafe to go backward
 
 			//Hit left key safe ?
 			//Fake an update on Head
