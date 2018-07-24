@@ -11,13 +11,21 @@ var speed = function(fps){
 	FPS = parseInt(fps);
 }
 
-var isCollision = function(snake){
+var isCollision = function(snake, canvasHeight, canvasWidth){
 	//test collision with body
 	for (step = 0; step < snake.body.length-1; step++) {
 		if (snake.head.x < snake.body[step].x + snake.body[step].width  && snake.head.x + snake.head.width  > snake.body[step].x &&
 				snake.head.y < snake.body[step].y + snake.body[step].height && snake.head.y + snake.head.height > snake.body[step].y) {
 			return true;
 		}
+	}
+	//test collision with border
+	// Die if you go outside the canvas
+	if((snake.head.y >= canvasHeight) || (snake.head.y + snake.head.height <= 0)){
+		return true;
+	}
+	if(snake.head.x >= canvasWidth || snake.head.x + snake.head.width <= 0){
+		return true;
 	}
 }
 
@@ -161,15 +169,9 @@ Snake.prototype.update = function(){
 }
 
 Snake.prototype.isDead = function(height, width){
-	// Die if you go outside the canvas
-	if((this.head.y >= height) || (this.head.y + this.head.height <= 0)){
-		return true;
-	}
-	if(this.head.x >= width || this.head.x + this.head.width <= 0){
-		return true;
-	}
-	//Die if you hit your body
-	if(isCollision(this)){
+
+	//Die if you hit your body or the canvas border
+	if(isCollision(this, height, width)){
 		return true;
 	}
 }
@@ -227,7 +229,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.x += this.snakes[i].head.width * (-1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i])){
+			if(isCollision(this.snakes[i], this.height, this.width)){
 				leftSafe = 0;
 			} else {
 				leftSafe = 1;
@@ -239,7 +241,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.x += this.snakes[i].head.width * (1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i])){
+			if(isCollision(this.snakes[i], this.height, this.width)){
 				rightSafe = 0;
 			} else {
 				rightSafe = 1;
@@ -251,7 +253,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.y += this.snakes[i].head.height * (1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i])){
+			if(isCollision(this.snakes[i], this.height, this.width)){
 				downSafe = 0;
 			} else {
 				downSafe = 1;
@@ -263,13 +265,17 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.y += this.snakes[i].head.height * (-1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i])){
+			if(isCollision(this.snakes[i], this.height, this.width)){
 				upSafe = 0;
 			} else {
 				upSafe = 1;
 			}
 			//Reset Head
 			this.snakes[i].head.y -= this.snakes[i].head.height * (-1) ;
+
+			if (i == 0){
+				console.log(leftSafe,rightSafe,upSafe,downSafe);
+			}
 
 			var inputs = [
 				leftSafe,
