@@ -1,3 +1,27 @@
+(function() {
+	var timeouts = [];
+	var messageName = "zero-timeout-message";
+
+	function setZeroTimeout(fn) {
+		timeouts.push(fn);
+		window.postMessage(messageName, "*");
+	}
+
+	function handleMessage(event) {
+		if (event.source == window && event.data == messageName) {
+			event.stopPropagation();
+			if (timeouts.length > 0) {
+				var fn = timeouts.shift();
+				fn();
+			}
+		}
+	}
+
+	window.addEventListener("message", handleMessage, true);
+
+	window.setZeroTimeout = setZeroTimeout;
+})();
+
 var Neuvol;
 var game;
 var FPS = 20;
@@ -230,7 +254,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.x += this.snakes[i].head.width * (-1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i], this.height, this.width)){
+			if(isCollision(this.snakes[i], this.height, this.width) || this.snakes[i].xdirect == 1){
 				leftSafe = 0;
 			} else {
 				leftSafe = 1;
@@ -242,7 +266,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.x += this.snakes[i].head.width * (1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i], this.height, this.width)){
+			if(isCollision(this.snakes[i], this.height, this.width) || this.snakes[i].xdirect == -1){
 				rightSafe = 0;
 			} else {
 				rightSafe = 1;
@@ -254,7 +278,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.y += this.snakes[i].head.height * (1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i], this.height, this.width)){
+			if(isCollision(this.snakes[i], this.height, this.width) || this.snakes[i].ydirect == -1 ){
 				downSafe = 0;
 			} else {
 				downSafe = 1;
@@ -266,7 +290,7 @@ Game.prototype.update = function(){
 			//Fake an update on Head
 			this.snakes[i].head.y += this.snakes[i].head.height * (-1) ;
 			//Assess safety
-			if(isCollision(this.snakes[i], this.height, this.width)){
+			if(isCollision(this.snakes[i], this.height, this.width) || this.snakes[i].ydirect == 1){
 				upSafe = 0;
 			} else {
 				upSafe = 1;
@@ -315,7 +339,7 @@ Game.prototype.update = function(){
 			this.snakes[i].update();
 
 			if (i == 0){
-				console.log(leftSafe,rightSafe,upSafe,downSafe);
+				console.log(inputs);
 			}
 
 			//Grow if you eat an apple
@@ -331,7 +355,7 @@ Game.prototype.update = function(){
 			if(this.snakes[i].isDead(this.height, this.width)){
 				this.snakes[i].alive = false;
 				this.alives--;
-				console.log(i, this.snakes[i].score);
+				//console.log(i, this.snakes[i].score);
 				Neuvol.networkScore(this.gen[i], this.snakes[i].score);
 				this.maxScore = (this.snakes[i].score > this.maxScore) ? this.snakes[i].score : this.maxScore;
 				if(this.isItEnd()){
